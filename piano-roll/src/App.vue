@@ -1,26 +1,38 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <TopBar></TopBar>
+  <PianoRoll></PianoRoll>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+//import HelloWorld from './components/HelloWorld.vue';
+import TopBar from './components/TopBar.vue'
+import PianoRoll from './components/PianoRoll.vue';
 
 export default {
   name: 'App',
   components: {
-    HelloWorld
+    TopBar,
+    PianoRoll
   }
 }
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: 'Mulish', sans-serif;
+  cursor: default;
+  background-color: #F0F0F0;
+  color: #1C1C1A;
+  height: 100vh; /* Use viewport height instead of 100% to occupy full screen height */
   text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 </style>
