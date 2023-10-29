@@ -4,9 +4,11 @@ export default class PianoRollDisplay {
   constructor(csvURL) {
     this.csvURL = csvURL;
     this.data = null;
+    console.log(this.csvURL + ' constructor')
   }
 
   async loadPianoRollData() {
+    console.log(this.csvURL + ' inside')
     try {
       const response = await fetch('https://pianoroll.ai/random_notes');
       if (!response.ok) {
@@ -27,15 +29,16 @@ export default class PianoRollDisplay {
     descriptionDiv.classList.add('description');
     descriptionDiv.textContent = `This is a piano roll number ${rollId}`;
 
-    cardDiv.appendChild(descriptionDiv);
-
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.classList.add('piano-roll-svg');
-    svg.setAttribute('width', '80%');
-    svg.setAttribute('height', '150');
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '160');
 
     // Append the SVG to the card container
     cardDiv.appendChild(svg);
+    cardDiv.appendChild(descriptionDiv);
+
+    // Moved it down because YT videos title are on bottom 
 
     return { cardDiv, svg }
   }
@@ -46,6 +49,7 @@ export default class PianoRollDisplay {
     
     const pianoRollContainer = document.getElementById('pianoRollContainer');
     pianoRollContainer.innerHTML = '';
+    const pianoRolls = []; // Array to store the PianoRoll instances
     for (let it = 0; it < 20; it++) {
       const start = it * 60;
       const end = start + 60;
@@ -55,7 +59,8 @@ export default class PianoRollDisplay {
 
       pianoRollContainer.appendChild(cardDiv);
       const roll = new PianoRoll(svg, partData);
-      console.log(roll)
+      pianoRolls.push(roll); // Store the PianoRoll instance in the array
     }
+    return pianoRolls;
   }
 }

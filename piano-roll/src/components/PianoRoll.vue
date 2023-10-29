@@ -7,53 +7,34 @@
   </div>
 
   <div id="pianoRollContainer" >
-    <div v-for="it in 30" :key="it" class="piano-roll-card">
-        <div class="description">This is a piano roll number {{ it }}</div>
+    <div v-for="it in pianoRollCount" :key="it" class="piano-roll-card">
         <div class="piano-roll-svg">
           <svg :id="'pianoRollSvg' + it" :ref="'pianoRollRef' + it"></svg>
         </div>
+        <div class="description">This is a piano roll number {{ it }}</div>
       </div>
   </div>
 
 </template>
 <script>
-import { ref } from 'vue';
 import PianoRollDisplay from '@/utils/PianoRollDisplay.js'; // Using the "@" alias for the "src" directory
 
 
 export default {
   setup() {
-    // const data = ref(csvToSVG)
-    const pianoRollRefs = ref([]);
+    const pianoRollCount = 30;
 
     const handleClick = async () => {
-      const csvToSVG = new PianoRollDisplay();
+      const csvToSVG = new PianoRollDisplay('https://pianoroll.ai/random_notes');
       const generatedData = await csvToSVG.generateSVGs();
       if (generatedData){
         console.log(generatedData);
       }
     };
 
-    // onMounted(async () => {
-    //   if (!data.value) {
-    //     await loadPianoRollData();
-    //     if (!data.value) return;
-    //   }
-
-    //   for (let it = 0; it < 20; it++) {
-    //     const start = it * 60;
-    //     const end = start + 60;
-    //     const partData = data.value.slice(start, end);
-
-    //     const pianoRollRef = pianoRollRefs.value[it];
-    //     const roll = new PianoRoll(pianoRollRef, partData);
-    //     console.log(roll);
-    //   }
-    // });
-
     return {
       handleClick,
-      pianoRollRefs
+      pianoRollCount
     };
   },
 };

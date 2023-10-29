@@ -4,7 +4,6 @@
 </template>
 
 <script>
-//import HelloWorld from './components/HelloWorld.vue';
 import TopBar from './components/TopBar.vue'
 import PianoRoll from './components/PianoRoll.vue';
 
