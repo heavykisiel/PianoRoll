@@ -1,18 +1,24 @@
 <template>
   <TopBar></TopBar>
-  <PianoRoll></PianoRoll>
+    <PianoRoll></PianoRoll>
+
+ 
+
+  
 </template>
 
 <script>
 import TopBar from './components/TopBar.vue'
 import PianoRoll from './components/PianoRoll.vue';
 
+
+
 export default {
   name: 'App',
   components: {
     TopBar,
-    PianoRoll
-  }
+    PianoRoll,
+}
 }
 </script>
 
