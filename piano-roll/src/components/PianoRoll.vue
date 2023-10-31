@@ -4,19 +4,26 @@
     <div id="buttonContainer">
       <button id="loadCSV" @click="handleClick">Load Piano Rolls!</button>
     </div>
-    <div class="piano-roll-container">
-      <div v-for="(item, index) in PianoRollsArray" :key="index" class="piano-roll-card" :class="{ active: index === activeItem }" @click="toggleActive(index)">
-        <div class="piano-roll-svg" item>
+    <div class="piano-roll-container" :class="{ pianoRollSelected: activeItem !== null}">
+      <div v-for="(item, index) in PianoRollsArray" :key="index" class="piano-roll-card" 
+      :class="{ active: index === activeItem, inactive : index !== activeItem && activeItem!== null }" 
+      @click="toggleActive(index)"
+      @mousedown="toggleActive(index)"
+      @mousemove="toggleActive(index)"
+      @mouseup="toggleActive(index)"
+      @mouseleave="toggleActive(index)">
+        <div class="piano-roll-svg">
           <div v-html="item.svgElement.outerHTML"></div>
         </div>
         <div class="description">This is a piano roll number {{ index }}</div>
+        <div v-if="index == activeItem">eo</div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import PianoRoll from '@/utils/PianoRollLogic';
 
 export default {
@@ -28,8 +35,23 @@ export default {
     const data = ref(null);
 
     const toggleActive = (index) => {
-      activeItem.value = index === activeItem.value ? null : index;
+      if (activeItem.value === index) {
+        console.log("Interactive mode Mode");
+      }else{
+        activeItem.value = index === activeItem.value ? null : index;
+      }
+      
     };
+
+     // Filter out the active item and inactive items
+     const filteredItems = computed(() => {
+      const active = activeItem.value;
+      return PianoRollsArray.value.map((item, index) => ({
+        id: index,
+        isActive: index === active,
+        data: item,
+      }));
+    });
 
     const loadPianoRollData = async () => {
       try {
@@ -72,8 +94,8 @@ export default {
 
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.classList.add('piano-roll-svg' + rollId);
-      svg.setAttribute('width', '100%');
-      svg.setAttribute('height', '160');
+      svg.style.width='100%';
+      //svg.style.height= '160px';
 
       cardDiv.appendChild(svg);
       cardDiv.appendChild(descriptionDiv);
@@ -87,6 +109,7 @@ export default {
       toggleActive,
       PianoRollsArray,
       activeItem,
+      filteredItems,
     };
   },
 };
@@ -109,6 +132,12 @@ export default {
     grid-template-columns: repeat(4, 1fr); /* 1200px and larger */
   }
 }
+.pianoRollSelected {
+  display: grid;
+  grid-template-columns: 3fr 1fr; 
+  grid-template-rows: repeat(2, auto);
+  grid-auto-rows: auto;
+}
 
   
 h1 {
@@ -125,13 +154,13 @@ button {
   cursor: pointer;
   transition: background-color 0.3s;
   border-radius: 5px;
-  border-bottom: 3px solid #381815;  /* A darker shade for 3D effect */
-  position: relative;  /* Required for the top movement on hover */
-  transition: all 1.1s ease;  /* Transition for all properties */
+  border-bottom: 3px solid #381815;  
+  position: relative;  
+  transition: all 1.1s ease;  
 }
-
-
-
+svg {
+  height: 19vh;
+}
 #buttonContainer {
   display: flex;
   justify-content: center;
@@ -157,12 +186,32 @@ button:hover {
   margin-top: 10px;
 }
 .active {
-  transform: scale(1.2); 
+  position: relative;
+  transform: scale(1); 
   z-index: 1; 
-  transition: transform 0.3s, z-index 0.3s;
+  transition: transform 0.9s, z-index 0.9s;
+  grid-row-start: 1;
+  grid-row-end: 4;
+  grid-column-start: 1;
+  grid-column-end: 3;
+  
 }
+.active svg{
+  height: 57vh;
+}
+.inactive {
+  transform: scale(1); 
+  z-index: 1; 
+  transition: transform 0.3s, z-index 0.3s; 
 
-
+  flex-direction: column;
+  grid-column: 3;
+  /* Define the size of the "y" columns as needed */
+  width: 300px;
+}
+.inactive svg {
+  height: 18vh;
+}
 div {
   transform: scale(1);
   transition: transform 0.2s; 
