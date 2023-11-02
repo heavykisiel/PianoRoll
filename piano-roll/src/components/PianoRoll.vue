@@ -8,15 +8,20 @@
       <div v-for="(item, index) in PianoRollsArray" :key="index" class="piano-roll-card" 
       :class="{ active: index === activeItem, inactive : index !== activeItem && activeItem!== null }" 
       @click="toggleActive(index)"
-      @mousedown="toggleActive(index)"
-      @mousemove="toggleActive(index)"
-      @mouseup="toggleActive(index)"
-      @mouseleave="toggleActive(index)">
-        <div class="piano-roll-svg">
+      @mousedown="startSelection(index, $event)"
+      @mousemove="extendSelection(index, $event)"
+      @mouseup="endSelection(index, $event)"
+      @mouseleave="endSelection">
+        <div class="piano-roll-svg" ref="svg-active"
+        :class="{active: index === activeItem}">
+        <div class="selection-line" v-if="isSelecting && index === activeItem" :style="selectionLineStyle"></div>
+        <div class="painted-area" v-if="isSelecting && index === activeItem" :style="paintedAreaStyle"></div>
           <div v-html="item.svgElement.outerHTML"></div>
         </div>
         <div class="description">This is a piano roll number {{ index }}</div>
-        <div v-if="index == activeItem">eo</div>
+        <div v-if="index === activeItem">there are {{notes.length}} selected</div>
+        <div v-if="index === activeItem && notes.length > 0">startNoteIndex is {{startNoteIndex}} selected</div>
+        <div v-if="index === activeItem && notes.length > 0">endNoteIndex is {{endNoteIndex}} selected</div>
       </div>
     </div>
   </div>
@@ -33,25 +38,17 @@ export default {
     const PianoRollsArray = ref([]);
     const csvURL = 'https://pianoroll.ai/random_notes';
     const data = ref(null);
+    const notes = ref([]);
+
+    const isSelecting = ref(false); 
+    const startNoteIndex = ref(null); 
+    const endNoteIndex = ref(null); 
 
     const toggleActive = (index) => {
-      if (activeItem.value === index) {
-        console.log("Interactive mode Mode");
-      }else{
+      if (activeItem.value !== index) {
         activeItem.value = index === activeItem.value ? null : index;
       }
-      
     };
-
-     // Filter out the active item and inactive items
-     const filteredItems = computed(() => {
-      const active = activeItem.value;
-      return PianoRollsArray.value.map((item, index) => ({
-        id: index,
-        isActive: index === active,
-        data: item,
-      }));
-    });
 
     const loadPianoRollData = async () => {
       try {
@@ -67,7 +64,7 @@ export default {
 
     const handleClick = async () => {
       if (!data.value) await loadPianoRollData();
-      if (!data.value) return;
+      if (!data.value) return; //error to throw
       
       const buff = [];
 
@@ -95,7 +92,6 @@ export default {
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.classList.add('piano-roll-svg' + rollId);
       svg.style.width='100%';
-      //svg.style.height= '160px';
 
       cardDiv.appendChild(svg);
       cardDiv.appendChild(descriptionDiv);
@@ -103,13 +99,77 @@ export default {
       return { cardDiv, svg };
     };
 
+    const startSelection = (index, event) => {
+      if (activeItem.value === index ) {
+            isSelecting.value = true;
+            startNoteIndex.value = event.layerX;
+      }
+    };
+
+    const extendSelection = (index, event) => {
+      if (activeItem.value === index && isSelecting.value) {
+            endNoteIndex.value = event.layerX;
+            console.log("extendSelection",endNoteIndex.value);
+      }
+    };
+
+    const endSelection = (index) => {
+      if (activeItem.value === index && isSelecting.value) {
+        isSelecting.value = false;
+
+        const containerDiv = document.querySelector('.piano-roll-svg.active');
+        const noteElements = containerDiv.querySelectorAll('.note-rectangle');
+
+        let SelectedNotes = [];
+        noteElements.forEach((element) => {
+            const elementRect = element.getBoundingClientRect();
+            const elementX = Math.round(elementRect.left);
+            if ((startNoteIndex.value <= elementX && endNoteIndex.value >= elementX) ||
+                (startNoteIndex.value >= elementX && endNoteIndex.value <= elementX)) {
+                SelectedNotes.push(element);
+                
+            }
+        });
+        console.log('Selected Notes:', SelectedNotes);
+        
+        return notes.value = SelectedNotes;
+      }
+    };
+    const selectionLineStyle = computed(() => {
+    if (isSelecting.value) {
+        const left = Math.min(startNoteIndex.value, endNoteIndex.value) + 'px';
+        return { left };
+    } else {
+        return { display: 'none' };
+    }
+        });
+
+    const paintedAreaStyle = computed(() => {
+        if (isSelecting.value) {
+            const left = Math.min(startNoteIndex.value, endNoteIndex.value) + 'px';
+            const width = Math.abs(startNoteIndex.value - endNoteIndex.value) + 'px';
+            return { left, width };
+        } else {
+            return { display: 'none' };
+        }
+        });
+    
+
     return {
       handleClick,
       pianoRollCount,
       toggleActive,
       PianoRollsArray,
       activeItem,
-      filteredItems,
+      startSelection,
+      endSelection,
+      extendSelection,
+      notes,
+      paintedAreaStyle,
+      selectionLineStyle,
+      isSelecting,
+      startNoteIndex,
+      endNoteIndex
     };
   },
 };
@@ -118,18 +178,18 @@ export default {
 .piano-roll-container {
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(1, 1fr); /* Default for screens smaller than 768px */
+  grid-template-columns: repeat(1, 1fr); 
 
   @media (min-width: 768px) {
-    grid-template-columns: repeat(2, 1fr); /* 768px and larger */
+    grid-template-columns: repeat(2, 1fr);
   }
 
   @media (min-width: 992px) {
-    grid-template-columns: repeat(3, 1fr); /* 992px and larger */
+    grid-template-columns: repeat(3, 1fr);
   }
 
   @media (min-width: 1200px) {
-    grid-template-columns: repeat(4, 1fr); /* 1200px and larger */
+    grid-template-columns: repeat(4, 1fr); 
   }
 }
 .pianoRollSelected {
@@ -206,7 +266,6 @@ button:hover {
 
   flex-direction: column;
   grid-column: 3;
-  /* Define the size of the "y" columns as needed */
   width: 300px;
 }
 .inactive svg {
@@ -222,5 +281,20 @@ div {
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
+
+.selection-line {
+    position: absolute;
+    background-color: #00f; 
+    width: 2px; 
+    top: 0;
+    bottom: 0;
+  }
+
+.painted-area {
+    position: absolute;
+    background-color: rgba(0, 0, 255, 0.2); 
+    top: 0;
+    bottom: 0;
+  }
 
 </style>
