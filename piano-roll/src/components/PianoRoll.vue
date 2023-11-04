@@ -4,60 +4,39 @@
     <div id="buttonContainer">
       <button id="loadCSV" @click="handleClick">Load Piano Rolls!</button>
     </div>
-    <div class="piano-roll-container" :class="{ pianoRollSelected: activeItem !== null}">
-      <div v-if="activeItem === null" class="gridContainerWrapper">
+    <div class="piano-roll-container" :class="{ pianoRollSelected: activeList.length > 0}">
+      <div v-if="activeList.length == 0" class="gridContainerWrapper">
         <div v-for="(item, index) in PianoRollsArray" :key="index" class="piano-roll-card"
-            @click="toggleActive(index)">
+            @click="toggleActive(item, index)">
           <div v-html="item.svgElement.outerHTML"></div>
         </div>
       </div>
-        <div v-if="activeItem !== null" class="piano-roll-card  active"
-            @mousedown="startSelection(activeItem, $event)"
-            @mousemove="extendSelection(activeItem, $event)"
-            @mouseup="endSelection(activeItem, $event)" 
-            @mouseleave="endSelection">
 
+        <div v-if="activeIndex !== null" class="piano-roll-card  active">
           <div class="piano-roll-svg active">
-   
-          <div class="activeElement">
- 
-            <div v-html="activeElement.svgElement.outerHTML"></div>
+          <div class="activeElement"
+            @mousedown="startSelection(activeIndex, $event)"
+            @mousemove="extendSelection(activeIndex, $event)"
+            @mouseup="endSelection(activeIndex, $event)" 
+            @mouseleave="endSelection(activeIndex, $event)">
+            <div v-html="PianoRollsArray[activeIndex].svgElement.outerHTML"></div>     
             <div class="selection-line" v-if="isSelecting " :style="selectionLineStyle"></div>
-            <div class="painted-area" v-if="isSelecting "  :style="paintedAreaStyle"></div>  
+            <div class="painted-area" v-if="isSelecting "  :style="paintedAreaStyle"></div>
           </div>
         </div>
+        <div class="description">{{ activeIndex }}</div>  
+        <div v-if="null !== activeIndex">there are {{notes.length}} selected</div>
+        <div v-if="null !== activeIndex && notes.length > 0">startNoteIndex is {{startNoteIndex}} selected</div>
+        <div v-if="null !== activeIndex && notes.length > 0">endNoteIndex is {{Math.round(endNoteIndex)}} selected</div>
         </div>
         <div class="ListOfInactives">
-          <div v-for="(item ,index) in PianoRollsArray" :key="index" class="piano-roll-card inactive"
-              @click="toggleActive(index)"
-              >
-                <div v-html="item.svgElement.outerHTML"></div>
+          <div v-for="(item ,index) in inactiveList" :key="index" class="piano-roll-card inactive"
+              @click="toggleActive(item, index)"
+              >                
+              <div v-html="item.svgElement.outerHTML"></div>
                 <div>{{ index }}</div>
           </div>
         </div>
-  
-        <!-- <div v-for="(item, index) in PianoRollsArray" :key="index" class="piano-roll-card" 
-      :class="{ active: index === activeItem, inactive : index !== activeItem && activeItem!== null }" 
-      @click="toggleActive(index)"
-      @mousedown="startSelection(index, $event)"
-      @mousemove="extendSelection(index, $event)"
-      @mouseup="endSelection(index, $event)"
-      @mouseleave="endSelection">
-
-        <div class="piano-roll-svg" ref="svg-active"
-        :class="{active: index === activeItem}">
-        <div class="selection-line" v-if="isSelecting && index === activeItem" :style="selectionLineStyle"></div>
-        <div class="painted-area" v-if="isSelecting && index === activeItem" :style="paintedAreaStyle"></div>
-          <div v-html="item.svgElement.outerHTML"></div>
-        </div>
-        <div class="description">This is a piano roll number {{ index }}</div>
-        <div v-if="index === activeItem">there are {{notes.length}} selected</div>
-        <div v-if="index === activeItem && notes.length > 0">startNoteIndex is {{startNoteIndex}} selected</div>
-        <div v-if="index === activeItem && notes.length > 0">endNoteIndex is {{endNoteIndex}} selected</div>
-      </div> -->
-
-      
-      
     </div>
   </div>
 </template>
@@ -69,8 +48,9 @@ import PianoRoll from '@/utils/PianoRollLogic';
 export default {
   setup() {
     const pianoRollCount = 32;
-    const activeItem = ref(null);
+    const activeIndex = ref(null);
     const inactiveList = ref([]);
+    const activeList = ref([]);
     const activeElement = ref(null);
     const PianoRollsArray = ref([]);
     const csvURL = 'https://pianoroll.ai/random_notes';
@@ -81,16 +61,20 @@ export default {
     const startNoteIndex = ref(null); 
     const endNoteIndex = ref(null); 
 
-    const toggleActive = (index) => {
+    const toggleActive = (item ,index) => {
       if(activeElement.value === null) {
-        activeItem.value = index;
+        activeIndex.value = index;
         activeElement.value = PianoRollsArray.value[index];
-        inactiveList.value = PianoRollsArray.value.filter((_,i) => i !== activeItem.value);
+        activeList.value.push(activeElement);
+        inactiveList.value = PianoRollsArray.value.filter((item) => item !== PianoRollsArray.value[index]);
       }
-      if (activeItem.value !== index) {
-        activeItem.value = index === activeItem.value ? null : index;
-        inactiveList.value = PianoRollsArray.value.filter((_,i) => i !== activeItem.value);
-        activeElement.value = PianoRollsArray.value[activeItem.value];
+      if (activeIndex.value !== index) {
+        
+        activeList.value.splice(0,1,item);
+        inactiveList.value.splice(activeIndex.value,1,item);
+        console.log(inactiveList.value.splice(activeIndex.value,1,item))
+        console.log( activeIndex.value, "  ",index);
+        activeIndex.value = index;
       }
     };
 
@@ -144,21 +128,21 @@ export default {
     };
 
     const startSelection = (index, event) => {
-      if (activeItem.value === index ) {
+      if (activeIndex.value === index ) {
             isSelecting.value = true;
             startNoteIndex.value = event.layerX;
       }
     };
     const extendSelection = (index, event) => {
-      if(isSelecting.value && activeItem.value === index) {
-        if(event.target.matches('.piano-roll-svg' + activeItem.value)) {
+      if(isSelecting.value && activeIndex.value === index) {
+        if(event.target.matches('.piano-roll-svg' + activeIndex.value)) {
           endNoteIndex.value = event.layerX;
           }
         else if(event.target.matches('.painted-area')) {
           endNoteIndex.value = Math.abs(event.clientX - event.currentTarget.getBoundingClientRect().left);
           }
         else if(event.target.matches('rect')) {
-          endNoteIndex.value = Math.abs(event.clientX - event.currentTarget.getBoundingClientRect().left);
+          endNoteIndex.value = event.clientX - event.currentTarget.getBoundingClientRect().left;
           }
         else if(event.target.matches('line')) {
           endNoteIndex.value = event.clientX - event.currentTarget.getBoundingClientRect().left;
@@ -167,10 +151,10 @@ export default {
     };
 
     const endSelection = (index) => {
-      if (activeItem.value === index && isSelecting.value) {
+      if (activeIndex.value === index && isSelecting.value) {
         isSelecting.value = false;
 
-        const containerDiv = document.querySelector('.piano-roll-svg' + activeItem.value);
+        const containerDiv = document.querySelector('.piano-roll-svg' + activeIndex.value);
         const noteElements = containerDiv.querySelectorAll('.note-rectangle');
 
         let SelectedNotes = [];
@@ -180,7 +164,6 @@ export default {
             if ((startNoteIndex.value <= elementX && endNoteIndex.value >= elementX) ||
                 (startNoteIndex.value >= elementX && endNoteIndex.value <= elementX)) {
                 SelectedNotes.push(element);
-                
             }
         });
         console.log('Selected Notes:', SelectedNotes);
@@ -189,12 +172,12 @@ export default {
       }
     };
     const selectionLineStyle = computed(() => {
-    if (isSelecting.value) {
+        if (isSelecting.value) {
         const left = Math.min(startNoteIndex.value, endNoteIndex.value) + 'px';
-        return { left };
-    } else {
-        return { display: 'none' };
-    }
+          return { left };
+        } else {
+          return { display: 'none' };
+        }
         });
 
     const paintedAreaStyle = computed(() => {
@@ -213,7 +196,7 @@ export default {
       pianoRollCount,
       toggleActive,
       PianoRollsArray,
-      activeItem,
+      activeIndex,
       startSelection,
       endSelection,
       extendSelection,
@@ -224,7 +207,8 @@ export default {
       startNoteIndex,
       endNoteIndex,
       inactiveList,
-      activeElement
+      activeElement,
+      activeList
     };
   },
 };
@@ -299,25 +283,27 @@ button:hover {
 
 .piano-roll-card {
   border: 1px solid #ccc;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   padding: 10px;
   width: 100%;
   box-sizing: border-box;
+  border-radius: 10px; /* Rounded corners */
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Shadow effect */
+  background-color: #d0d9dc;
 }
 .piano-roll-card.active {
   position: relative;
-  border: 1px solid #ccc;
-  margin-bottom: 10px;
-  padding: 10px;
-  width: 100%;
-  box-sizing: border-box;
+  height: fit-content;
 }
 .description {
   margin-top: 10px;
 }
+.activeElement {
+  position: relative;
+}
 .ListOfInactives{
-  overflow-y: auto; /* Add a vertical scrollbar when content exceeds the container height */
-  padding: 20px; /* Add padding or styles as needed */
+  overflow-y: auto; 
+  padding: 20px; 
   height: 70vh;
   scroll-behavior: smooth;
 }

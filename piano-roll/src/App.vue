@@ -23,6 +23,10 @@ export default {
 </script>
 
 <style>
+
+:root {
+  --main-primary-color: #154151;
+}
 * {
   margin: 0;
   padding: 0;
