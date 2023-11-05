@@ -37,7 +37,8 @@ body {
   cursor: default;
   background-color: #F0F0F0;
   color: #1C1C1A;
-  height: 100vh; /* Use viewport height instead of 100% to occupy full screen height */
+  height: 100vh;
+  width:100vw;
   text-align: center;
   overflow: auto;
   display: flex;

@@ -1,8 +1,12 @@
 <template>
   <div>
-    <h1>Welcome to PianoRoll frontend coding challenge!</h1>
-    <div id="buttonContainer">
-      <button id="loadCSV" @click="handleClick">Load Piano Rolls!</button>
+    <h1 v-if="PianoRollsArray.length === 0">Click here to load Piano Rolls!</h1>
+    <h1 v-else-if="activeList.length === 0">Select your Piano Roll</h1>
+    <h1 v-else>Explore your Piano Roll</h1>
+    <div id="button-container">
+      <button v-if="PianoRollsArray.length === 0" id="loadCSV" @click="handleClickforDataLoader">Load Piano Rolls!</button>
+      <button v-if="activeIndex !== null" @click="enterGrid()">Enter grid view</button>
+      <button v-if="activeIndex !== null" @click="toggleSelection()">Clear Selection</button>
     </div>
     <div class="piano-roll-container" :class="{ pianoRollSelected: activeList.length > 0}">
       <div v-if="activeList.length == 0" class="gridContainerWrapper">
@@ -11,10 +15,11 @@
           <div v-html="item.svgElement.outerHTML"></div>
         </div>
       </div>
-
+      <div v-if="loading" class="loading-indficator"
+      > Loading ... </div>
         <div v-if="activeIndex !== null" class="piano-roll-card  active">
           <div class="piano-roll-svg active">
-          <div class="activeElement"
+          <div class="active-element"
             @mousedown="startSelection(activeIndex, $event)"
             @mousemove="extendSelection(activeIndex, $event)"
             @mouseup="endSelection(activeIndex, $event)" 
@@ -22,21 +27,27 @@
             <div v-html="PianoRollsArray[activeIndex].svgElement.outerHTML"></div>     
             <div class="selection-line" v-if="isSelecting " :style="selectionLineStyle"></div>
             <div class="painted-area" v-if="isSelecting "  :style="paintedAreaStyle"></div>
+            <div class="selected-lines" v-if="(startNoteIndex !== null || endNoteIndex !== null) && lineSwitch"
+            :style="selectedLineLeftStyle"></div>
+            <div class="selected-lines" v-if="(startNoteIndex !== null || endNoteIndex !== null) && lineSwitch"
+            :style="selectedLineRightStyle"></div>
           </div>
         </div>
-        <div class="description">{{ activeIndex }}</div>  
-        <div v-if="null !== activeIndex">there are {{notes.length}} selected</div>
-        <div v-if="null !== activeIndex && notes.length > 0">startNoteIndex is {{startNoteIndex}} selected</div>
-        <div v-if="null !== activeIndex && notes.length > 0">endNoteIndex is {{Math.round(endNoteIndex)}} selected</div>
+        <div class="description"></div>  
+        <div v-if="null !== activeIndex">there are {{notes.length}} notes selected</div>
+        <div v-if="null !== activeIndex && notes.length > 0">first point is selected {{startNoteIndex}} px</div>
+        <div v-if="null !== activeIndex && notes.length > 0">second point is selected {{Math.round(endNoteIndex)}} px</div>
+        
         </div>
-        <div class="ListOfInactives">
-          <div v-for="(item ,index) in inactiveList" :key="index" class="piano-roll-card inactive"
+        <div v-if="activeIndex !== null">
+        <div class="list-inactives">
+          <div v-for="(item ,index) in inactiveList" :key="index.id" class="piano-roll-card inactive"
               @click="toggleActive(item, index)"
               >                
               <div v-html="item.svgElement.outerHTML"></div>
-                <div>{{ index }}</div>
           </div>
         </div>
+      </div>
     </div>
   </div>
 </template>
@@ -49,9 +60,6 @@ export default {
   setup() {
     const pianoRollCount = 32;
     const activeIndex = ref(null);
-    const inactiveList = ref([]);
-    const activeList = ref([]);
-    const activeElement = ref(null);
     const PianoRollsArray = ref([]);
     const csvURL = 'https://pianoroll.ai/random_notes';
     const data = ref(null);
@@ -60,22 +68,27 @@ export default {
     const isSelecting = ref(false); 
     const startNoteIndex = ref(null); 
     const endNoteIndex = ref(null); 
+    const loading = ref(false);
+    const lineSwitch = ref(false);
+    
+    const toggleActive = (item, index) => {
+      if (activeIndex.value === null || activeIndex.value !== index) {
+        activeIndex.value = index;
+      } 
+      else {
+        activeIndex.value = index +1 ;
+      }
+      toggleSelection();
+    };
 
-    const toggleActive = (item ,index) => {
-      if(activeElement.value === null) {
-        activeIndex.value = index;
-        activeElement.value = PianoRollsArray.value[index];
-        activeList.value.push(activeElement);
-        inactiveList.value = PianoRollsArray.value.filter((item) => item !== PianoRollsArray.value[index]);
-      }
-      if (activeIndex.value !== index) {
-        
-        activeList.value.splice(0,1,item);
-        inactiveList.value.splice(activeIndex.value,1,item);
-        console.log(inactiveList.value.splice(activeIndex.value,1,item))
-        console.log( activeIndex.value, "  ",index);
-        activeIndex.value = index;
-      }
+    const toggleSelection = () => {
+        lineSwitch.value =!lineSwitch.value;
+        startNoteIndex.value = null;
+        endNoteIndex.value = null;
+        notes.value = [];
+    }
+    const enterGrid = () => {
+        activeIndex.value = null;
     };
 
     const loadPianoRollData = async () => {
@@ -89,13 +102,9 @@ export default {
         console.error('Error loading data:', error);
       }
     };
-
-    const handleClick = async () => {
-      if (!data.value) await loadPianoRollData();
-      if (!data.value) return; //error to throw
-      
+    const loadData =()=> {
       const buff = [];
-
+      
       for (let it = 0; it < pianoRollCount; it++) {
         const start = it * 60;
         const end = start + 60;
@@ -106,7 +115,14 @@ export default {
         buff.push(roll);
       }
       PianoRollsArray.value = buff;
-      return PianoRollsArray;
+    }
+
+    const handleClickforDataLoader = async () => {
+      if (!data.value) await loadPianoRollData();
+      if (!data.value) {
+        throw new Error('Error loading data!');
+      }
+      loadData();
     };
 
     const preparePianoRollCard = (rollId) => {
@@ -133,13 +149,14 @@ export default {
             startNoteIndex.value = event.layerX;
       }
     };
+
     const extendSelection = (index, event) => {
       if(isSelecting.value && activeIndex.value === index) {
         if(event.target.matches('.piano-roll-svg' + activeIndex.value)) {
           endNoteIndex.value = event.layerX;
           }
         else if(event.target.matches('.painted-area')) {
-          endNoteIndex.value = Math.abs(event.clientX - event.currentTarget.getBoundingClientRect().left);
+          endNoteIndex.value = event.clientX - event.currentTarget.getBoundingClientRect().left;
           }
         else if(event.target.matches('rect')) {
           endNoteIndex.value = event.clientX - event.currentTarget.getBoundingClientRect().left;
@@ -167,10 +184,11 @@ export default {
             }
         });
         console.log('Selected Notes:', SelectedNotes);
-        
+        lineSwitch.value = true;
         return notes.value = SelectedNotes;
       }
     };
+
     const selectionLineStyle = computed(() => {
         if (isSelecting.value) {
         const left = Math.min(startNoteIndex.value, endNoteIndex.value) + 'px';
@@ -178,7 +196,7 @@ export default {
         } else {
           return { display: 'none' };
         }
-        });
+    });
 
     const paintedAreaStyle = computed(() => {
         if (isSelecting.value) {
@@ -188,11 +206,34 @@ export default {
         } else {
             return { display: 'none' };
         }
-        });
-    
+    });
+
+    const selectedLineLeftStyle = computed(() => {
+      const left = Math.min(startNoteIndex.value, endNoteIndex.value) + 'px';
+      return { left }
+    });
+
+    const selectedLineRightStyle = computed(() => {
+      const left = Math.max(startNoteIndex.value, endNoteIndex.value) + 'px';
+      return { left }
+    });
+
+    const activeList = computed(() => {
+      if (activeIndex.value !== null) {
+        return [PianoRollsArray.value[activeIndex]];
+      }
+      return [];
+    });
+
+    const inactiveList = computed(() => {
+      if (activeIndex.value !== null) {
+        return PianoRollsArray.value.filter((_, index) => index !== activeIndex.value);
+      }
+      return PianoRollsArray.value;
+    });
 
     return {
-      handleClick,
+      handleClickforDataLoader,
       pianoRollCount,
       toggleActive,
       PianoRollsArray,
@@ -203,12 +244,17 @@ export default {
       notes,
       paintedAreaStyle,
       selectionLineStyle,
+      selectedLineLeftStyle,
+      selectedLineRightStyle,
       isSelecting,
       startNoteIndex,
       endNoteIndex,
       inactiveList,
-      activeElement,
-      activeList
+      activeList,
+      enterGrid,
+      loading,
+      lineSwitch,
+      toggleSelection
     };
   },
 };
@@ -236,6 +282,13 @@ export default {
   display: flex;
   gap: 3.5vw;
   margin: 1.5vh 5vw 0px 5vw;
+
+  @media (min-width: 768px) {
+    flex-direction: column;
+  }
+  @media (min-width: 1080px) {
+    flex-direction: row;
+  }
 }
 h1 {
     margin-bottom: 20px;
@@ -268,9 +321,10 @@ svg {
     aspect-ratio: 21/9;
   }
 }
-#buttonContainer {
+#button-container {
   display: flex;
   justify-content: center;
+  gap: 1.5vh;
 }
 
 button:hover {
@@ -291,6 +345,41 @@ button:hover {
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Shadow effect */
   background-color: #d0d9dc;
 }
+@keyframes slide-fade-in {
+  from{
+      opacity: 0;
+      transform: translateY(5vh);
+  }
+}
+@keyframes slide-fade-on {
+  from{
+      opacity: 0;
+      transform: translateY(-5vh);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+
+  .piano-roll-card,h1{
+    view-timeline-name: --item-timeline;
+    animation: slide-fade-in 1s both;
+    animation-timeline:  --item-timeline;
+    animation-range: contain 0% contain 50%;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+h1{
+  view-timeline-name: --item-timeline;
+  animation: slide-fade-on 1s both;
+  animation-timeline:  --item-timeline;
+  animation-range: contain 0% contain 50%;
+}
+}
+div.paino-roll-card:hover {
+  transform: rotatex(15deg);
+  transform: rotatez(15deg);
+  transition:.6s;
+
+}
 .piano-roll-card.active {
   position: relative;
   height: fit-content;
@@ -298,13 +387,13 @@ button:hover {
 .description {
   margin-top: 10px;
 }
-.activeElement {
+.active-element {
   position: relative;
 }
-.ListOfInactives{
-  overflow-y: auto; 
+.list-inactives{
+  overflow-y:auto; 
   padding: 20px; 
-  height: 70vh;
+  height: 80vh;
   scroll-behavior: smooth;
 }
 .selection-line {
@@ -321,5 +410,20 @@ button:hover {
     top: 0;
     bottom: 0;
   }
+
+.selected-lines {
+  position: absolute;
+  background-color: rgb(0, 4, 255); 
+  width: 2px; 
+  top: 0;
+  bottom: 0;
+
+}
+.loading-indicator {
+  text-align: center;
+  padding: 10px;
+  background-color: #f0f0f0;
+}
+
 
 </style>

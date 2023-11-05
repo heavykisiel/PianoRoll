@@ -23,7 +23,7 @@
   }
   
   .logo-container img {
-    height: 40px;
+    height: 5vh;
     width: auto;
     fill: white;
   }
