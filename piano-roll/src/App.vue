@@ -1,10 +1,6 @@
 <template>
   <TopBar></TopBar>
-    <PianoRoll></PianoRoll>
-
- 
-
-  
+  <PianoRoll></PianoRoll>
 </template>
 
 <script>

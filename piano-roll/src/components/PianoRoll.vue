@@ -15,8 +15,6 @@
           <div v-html="item.svgElement.outerHTML"></div>
         </div>
       </div>
-      <div v-if="loading" class="loading-indficator"
-      > Loading ... </div>
         <div v-if="activeIndex !== null" class="piano-roll-card  active">
           <div class="piano-roll-svg active">
           <div class="active-element"
@@ -68,7 +66,6 @@ export default {
     const isSelecting = ref(false); 
     const startNoteIndex = ref(null); 
     const endNoteIndex = ref(null); 
-    const loading = ref(false);
     const lineSwitch = ref(false);
     
     const toggleActive = (item, index) => {
@@ -183,7 +180,6 @@ export default {
                 SelectedNotes.push(element);
             }
         });
-        console.log('Selected Notes:', SelectedNotes);
         lineSwitch.value = true;
         return notes.value = SelectedNotes;
       }
@@ -252,7 +248,6 @@ export default {
       inactiveList,
       activeList,
       enterGrid,
-      loading,
       lineSwitch,
       toggleSelection
     };
@@ -266,7 +261,7 @@ export default {
   margin: 1.5vh 5vw 0px 5vw;
   grid-template-columns: repeat(1, 1fr); 
 
-  @media (min-width: 768px) {
+  @media (min-width: 600px) {
     grid-template-columns: repeat(2, 1fr);
   }
 
@@ -282,8 +277,9 @@ export default {
   display: flex;
   gap: 3.5vw;
   margin: 1.5vh 5vw 0px 5vw;
+  flex-direction: column;
 
-  @media (min-width: 768px) {
+  @media (min-width: 600px) {
     flex-direction: column;
   }
   @media (min-width: 1080px) {
@@ -314,7 +310,7 @@ svg {
   @media (min-width: 768px) {
     aspect-ratio: 4/3;        
   }
-  @media (min-width: 992px) {
+  @media (min-width: 800px) {
     aspect-ratio: 16/9;
   }
   @media (min-width: 1800px) {
